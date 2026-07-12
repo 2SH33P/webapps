@@ -1,0 +1,1938 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>画布扩展</title>
+  <style>
+    :root {
+      --theme: #39c5bb;
+      --theme-rgb: 57, 197, 187;
+      --text: #172033;
+      --text-strong: #0f172a;
+      --sub: #73839a;
+      --sub-2: #93a1b3;
+      --line: rgba(126, 146, 168, .18);
+      --line-strong: rgba(57, 197, 187, .42);
+      --glass: rgba(255, 255, 255, .62);
+      --glass-strong: rgba(255, 255, 255, .78);
+      --shadow: 0 30px 90px rgba(38, 66, 90, .16);
+      --shadow-soft: 0 18px 52px rgba(38, 66, 90, .11);
+      --radius-xl: 28px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --ease: cubic-bezier(.2, .8, .2, 1);
+      --topbar-h: 76px;
+    }
+
+    * {
+      box-sizing: border-box;
+      min-width: 0;
+    }
+
+    html {
+      width: 100%;
+      height: 100%;
+      scroll-behavior: smooth;
+      overflow-x: hidden;
+    }
+
+    body {
+      width: 100%;
+      max-width: 100%;
+      min-height: 100%;
+      margin: 0;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      background:
+        radial-gradient(circle at 12% 14%, rgba(var(--theme-rgb), .18), transparent 34%),
+        radial-gradient(circle at 86% 12%, rgba(255, 255, 255, .92), transparent 28%),
+        radial-gradient(circle at 78% 85%, rgba(var(--theme-rgb), .14), transparent 34%),
+        linear-gradient(135deg, #eef8fb 0%, #fbfdff 45%, #eff8f7 100%);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      pointer-events: none;
+      z-index: -2;
+      border-radius: 999px;
+      filter: blur(5px);
+      animation: floatGlow 13s var(--ease) infinite alternate;
+    }
+
+    body::before {
+      width: 520px;
+      height: 520px;
+      left: -190px;
+      top: -120px;
+      background: rgba(var(--theme-rgb), .24);
+    }
+
+    body::after {
+      width: 620px;
+      height: 620px;
+      right: -260px;
+      bottom: -240px;
+      background: rgba(151, 236, 231, .24);
+      animation-delay: -5s;
+    }
+
+    @keyframes floatGlow {
+      from { transform: translate3d(0, 0, 0) scale(1); }
+      to { transform: translate3d(34px, 22px, 0) scale(1.08); }
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .page {
+      width: min(1440px, calc(100vw - 44px));
+      max-width: calc(100vw - 44px);
+      min-height: calc(100vh - 64px);
+      margin: 32px auto;
+      border: 1px solid rgba(255, 255, 255, .88);
+      border-radius: 30px;
+      background: linear-gradient(135deg, rgba(255,255,255,.70), rgba(255,255,255,.43));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(32px) saturate(180%);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      overflow: hidden;
+      animation: shellIn .78s var(--ease) both;
+    }
+
+    @keyframes shellIn {
+      from {
+        opacity: 0;
+        transform: translate3d(0, 18px, 0) scale(.985);
+      }
+      to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+    }
+
+    .topbar {
+      height: var(--topbar-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 30px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255,255,255,.42);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background:
+        radial-gradient(circle at 32% 25%, rgba(255,255,255,.55), transparent 26%),
+        linear-gradient(135deg, #38d6cc, var(--theme));
+      box-shadow: 0 14px 32px rgba(var(--theme-rgb), .36);
+      flex: 0 0 auto;
+    }
+
+    .logo svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .brand-text {
+      min-width: 0;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 780;
+      letter-spacing: -.02em;
+      color: var(--text-strong);
+    }
+
+    .brand-subtitle {
+      margin: 3px 0 0;
+      color: var(--sub);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .icon-action,
+    .export-btn {
+      border: 0;
+      min-height: 42px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform .32s var(--ease), box-shadow .32s var(--ease), background .32s var(--ease), opacity .32s var(--ease);
+    }
+
+    .icon-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--sub);
+      background: transparent;
+      padding: 0 10px;
+      font-weight: 650;
+    }
+
+    .icon-action svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .icon-action:hover {
+      color: var(--theme);
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.54);
+    }
+
+    .icon-action:disabled {
+      opacity: .38;
+      cursor: not-allowed;
+      transform: none;
+      background: transparent;
+    }
+
+    .export-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 0 22px;
+      color: #fff;
+      font-weight: 760;
+      background: linear-gradient(135deg, #3ddbd0, var(--theme));
+      box-shadow: 0 14px 34px rgba(var(--theme-rgb), .34);
+    }
+
+    .export-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 46px rgba(var(--theme-rgb), .42);
+    }
+
+    .export-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .workspace {
+      width: 100%;
+      max-width: 100%;
+      display: grid;
+      grid-template-columns: 132px minmax(0, 1fr) minmax(320px, 356px);
+      grid-template-areas: "ratio canvas panel";
+      gap: 28px;
+      padding: 28px 24px 28px;
+      min-height: calc(100vh - 64px - var(--topbar-h));
+    }
+
+    .ratio-rail {
+      grid-area: ratio;
+      align-self: center;
+      justify-self: center;
+      width: 96px;
+      padding: 24px 12px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,.82);
+      background: rgba(255,255,255,.56);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(26px) saturate(180%);
+      -webkit-backdrop-filter: blur(26px) saturate(180%);
+    }
+
+    .ratio-title {
+      margin: 0 0 18px;
+      text-align: center;
+      color: var(--sub);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .ratio-list {
+      max-width: 100%;
+      display: grid;
+      gap: 10px;
+    }
+
+    .ratio-button {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 14px;
+      color: #718198;
+      cursor: pointer;
+      background: transparent;
+      padding: 10px 8px;
+      transition: transform .32s var(--ease), background .32s var(--ease), border-color .32s var(--ease), box-shadow .32s var(--ease), color .32s var(--ease);
+    }
+
+    .ratio-button:hover {
+      color: var(--theme);
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.54);
+    }
+
+    .ratio-button.active {
+      color: var(--theme);
+      border-color: rgba(var(--theme-rgb), .45);
+      background: rgba(var(--theme-rgb), .10);
+      box-shadow: 0 10px 26px rgba(var(--theme-rgb), .14), inset 0 0 0 1px rgba(255,255,255,.58);
+    }
+
+    .ratio-icon {
+      width: 30px;
+      height: 30px;
+      margin: 0 auto 6px;
+      display: grid;
+      place-items: center;
+    }
+
+    .ratio-shape {
+      display: block;
+      border: 2px solid currentColor;
+      border-radius: 4px;
+      opacity: .8;
+    }
+
+    .shape-3-4 { width: 15px; height: 24px; }
+    .shape-4-3 { width: 26px; height: 19px; }
+    .shape-1-1 { width: 22px; height: 22px; }
+    .shape-9-16 { width: 13px; height: 24px; }
+    .shape-16-9 { width: 30px; height: 17px; }
+
+    .ratio-text {
+      display: block;
+      font-size: 13px;
+      font-weight: 680;
+    }
+
+    .canvas-section {
+      grid-area: canvas;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-self: stretch;
+    }
+
+    .stage-card {
+      width: 100%;
+      max-width: 100%;
+      min-height: 620px;
+      padding: 34px;
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(255,255,255,.82);
+      background: linear-gradient(135deg, rgba(255,255,255,.56), rgba(255,255,255,.32));
+      box-shadow: 0 24px 70px rgba(38,66,90,.10);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .stage-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.58), transparent 44%),
+        radial-gradient(circle at 8% 12%, rgba(var(--theme-rgb), .08), transparent 34%);
+      pointer-events: none;
+    }
+
+    .canvas-scroll {
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      height: 100%;
+      min-height: 540px;
+      display: grid;
+      place-items: center;
+      overflow: auto;
+      overscroll-behavior: contain;
+      border-radius: 22px;
+      padding: 18px;
+      scroll-behavior: smooth;
+    }
+
+    .canvas-scroll.panning {
+      cursor: grab;
+    }
+
+    .canvas-scroll.panning.is-dragging {
+      cursor: grabbing;
+      scroll-behavior: auto;
+    }
+
+    .canvas-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-width: max-content;
+      min-height: max-content;
+      transition: transform .45s var(--ease);
+    }
+
+    canvas {
+      display: block;
+      background: #000;
+      border-radius: 14px;
+      box-shadow: 0 34px 74px rgba(15, 23, 42, .26);
+      transition: width .36s var(--ease), height .36s var(--ease), transform .42s var(--ease), box-shadow .42s var(--ease), opacity .25s var(--ease);
+      max-width: none;
+      max-height: none;
+      touch-action: none;
+    }
+
+    canvas.updating {
+      transform: scale(.985);
+      opacity: .86;
+      box-shadow: 0 24px 56px rgba(15, 23, 42, .20);
+    }
+
+    .drop-overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: rgba(255,255,255,.72);
+      pointer-events: none;
+      transition: opacity .28s var(--ease), transform .28s var(--ease);
+    }
+
+    .drop-overlay.hidden {
+      opacity: 0;
+      transform: scale(.98);
+    }
+
+    .upload-mark {
+      display: grid;
+      place-items: center;
+      gap: 12px;
+    }
+
+    .upload-mark svg {
+      width: 122px;
+      height: 122px;
+      opacity: .42;
+    }
+
+    .upload-title {
+      margin: 0;
+      font-size: 21px;
+      color: rgba(255,255,255,.84);
+      font-weight: 700;
+      letter-spacing: -.02em;
+    }
+
+    .upload-subtitle {
+      margin: 0;
+      color: rgba(255,255,255,.50);
+      font-size: 15px;
+    }
+
+    .drop-highlight .stage-card,
+    .stage-card.drop-highlight {
+      box-shadow: 0 24px 70px rgba(var(--theme-rgb), .22), inset 0 0 0 1px rgba(var(--theme-rgb), .36);
+    }
+
+    .zoom-bar {
+      justify-self: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.82);
+      background: rgba(255,255,255,.66);
+      box-shadow: 0 14px 38px rgba(38,66,90,.13);
+      backdrop-filter: blur(26px) saturate(180%);
+      -webkit-backdrop-filter: blur(26px) saturate(180%);
+    }
+
+    .zoom-button,
+    .zoom-readout {
+      min-width: 40px;
+      height: 36px;
+      border: 0;
+      border-radius: 12px;
+      display: inline-grid;
+      place-items: center;
+      background: transparent;
+      color: var(--text);
+      font-weight: 720;
+      transition: transform .28s var(--ease), background .28s var(--ease), color .28s var(--ease);
+    }
+
+    .zoom-button {
+      cursor: pointer;
+    }
+
+    .zoom-button:hover,
+    .zoom-button.active {
+      color: var(--theme);
+      background: rgba(var(--theme-rgb), .10);
+      transform: translateY(-1px);
+    }
+
+    .zoom-readout {
+      width: 68px;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .settings {
+      grid-area: panel;
+      width: 100%;
+      max-width: 100%;
+      align-self: center;
+      min-width: 0;
+      padding: 26px 24px;
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(255,255,255,.82);
+      background: rgba(255,255,255,.58);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+    }
+
+    .panel-group + .panel-group {
+      margin-top: 28px;
+    }
+
+    .panel-heading {
+      margin: 0 0 14px;
+      color: var(--text-strong);
+      font-size: 15px;
+      font-weight: 760;
+      letter-spacing: -.02em;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .mode-card {
+      width: 100%;
+      min-height: 144px;
+      border: 1px solid rgba(128, 146, 168, .18);
+      border-radius: 16px;
+      background: rgba(255,255,255,.38);
+      cursor: pointer;
+      padding: 17px 10px;
+      text-align: center;
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.52);
+      transition: transform .32s var(--ease), box-shadow .32s var(--ease), border-color .32s var(--ease), background .32s var(--ease);
+    }
+
+    .mode-card:hover {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,.64);
+      box-shadow: 0 16px 34px rgba(38,66,90,.10), inset 0 0 0 1px rgba(255,255,255,.68);
+    }
+
+    .mode-card.active {
+      border-color: rgba(var(--theme-rgb), .82);
+      background: rgba(var(--theme-rgb), .08);
+      box-shadow: 0 18px 38px rgba(var(--theme-rgb), .18), inset 0 0 0 1px rgba(255,255,255,.76);
+    }
+
+    .mode-icon {
+      height: 48px;
+      display: grid;
+      place-items: center;
+      color: var(--sub-2);
+      margin-bottom: 8px;
+    }
+
+    .mode-card.active .mode-icon {
+      color: var(--theme);
+    }
+
+    .mode-icon svg {
+      width: 38px;
+      height: 38px;
+    }
+
+    .mode-title {
+      font-size: 14px;
+      font-weight: 780;
+      color: var(--text);
+    }
+
+    .mode-card.active .mode-title {
+      color: var(--theme);
+    }
+
+    .mode-desc {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--sub);
+    }
+
+
+    .percent-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      height: 58px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.58);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.82), 0 14px 34px rgba(38,66,90,.09);
+      backdrop-filter: blur(22px) saturate(180%);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      transition: box-shadow .28s var(--ease), transform .28s var(--ease), background .28s var(--ease);
+    }
+
+    .percent-input-wrap:focus-within {
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.76);
+      box-shadow: inset 0 0 0 2px rgba(var(--theme-rgb), .55), 0 18px 42px rgba(var(--theme-rgb), .18);
+    }
+
+    .percent-input {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--theme);
+      font-size: 32px;
+      font-weight: 820;
+      letter-spacing: -.04em;
+      text-align: center;
+      padding: 0 46px 0 18px;
+    }
+
+    .percent-symbol {
+      position: absolute;
+      right: 18px;
+      color: var(--theme);
+      font-size: 22px;
+      font-weight: 800;
+      pointer-events: none;
+    }
+
+    .strong-reset {
+      color: #0f7e78;
+      background: rgba(var(--theme-rgb), .12);
+      box-shadow: inset 0 0 0 1px rgba(var(--theme-rgb), .20);
+    }
+
+    .percent-box {
+      text-align: center;
+      margin-top: 2px;
+    }
+
+    .percent-value {
+      margin: 0;
+      color: var(--theme);
+      font-size: 32px;
+      font-weight: 820;
+      line-height: 1.1;
+      letter-spacing: -.04em;
+      text-shadow: 0 10px 26px rgba(var(--theme-rgb), .18);
+    }
+
+    .range-wrap {
+      margin-top: 18px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      appearance: none;
+      height: 24px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 6px;
+      border-radius: 999px;
+      background:
+        linear-gradient(90deg,
+          rgba(226,232,240,.78) 0%,
+          rgba(226,232,240,.78) var(--zero-pos, 20%),
+          rgba(var(--theme-rgb), .58) var(--zero-pos, 20%),
+          rgba(var(--theme-rgb), .58) var(--fill-pos, 26.67%),
+          rgba(226,232,240,.78) var(--fill-pos, 26.67%),
+          rgba(226,232,240,.78) 100%);
+      box-shadow: inset 0 1px 2px rgba(15,23,42,.08);
+    }
+
+    input[type="range"]::-moz-range-track {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(226,232,240,.90);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      margin-top: -8px;
+      border-radius: 50%;
+      border: 0;
+      background: var(--theme);
+      box-shadow: 0 8px 22px rgba(var(--theme-rgb), .42), 0 0 0 7px rgba(var(--theme-rgb), .12);
+      transition: transform .2s var(--ease), box-shadow .2s var(--ease);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.06);
+      box-shadow: 0 10px 26px rgba(var(--theme-rgb), .50), 0 0 0 10px rgba(var(--theme-rgb), .14);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 0;
+      background: var(--theme);
+      box-shadow: 0 8px 22px rgba(var(--theme-rgb), .42);
+    }
+
+    .ticks {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      color: var(--sub);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .ticks span:nth-child(1) { text-align: left; }
+    .ticks span:nth-child(2),
+    .ticks span:nth-child(3) { text-align: center; }
+    .ticks span:nth-child(4) { text-align: right; }
+
+    .range-caption {
+      margin: 12px 0 0;
+      color: var(--sub-2);
+      font-size: 12px;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .color-row {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 4px;
+      color: var(--text);
+    }
+
+    .color-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 680;
+    }
+
+    .color-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px rgba(15,23,42,.12), 0 8px 20px rgba(38,66,90,.10);
+    }
+
+    .select-arrow {
+      color: var(--sub);
+      display: grid;
+      place-items: center;
+    }
+
+    .tips {
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .tips-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: var(--sub);
+      font-weight: 760;
+    }
+
+    .tips p {
+      margin: 3px 0;
+    }
+
+    .status-line {
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .status-line strong {
+      color: var(--text);
+    }
+
+    .primary-action,
+    .reset-action {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      min-height: 52px;
+      cursor: pointer;
+      font-weight: 780;
+      transition: transform .32s var(--ease), box-shadow .32s var(--ease), background .32s var(--ease), color .32s var(--ease);
+    }
+
+    .primary-action {
+      color: #fff;
+      background: linear-gradient(135deg, #3ddbd0, var(--theme));
+      box-shadow: 0 18px 40px rgba(var(--theme-rgb), .32);
+    }
+
+    .primary-action:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 22px 50px rgba(var(--theme-rgb), .42);
+    }
+
+    .reset-action {
+      margin-top: 12px;
+      color: var(--text);
+      background: rgba(255,255,255,.42);
+      box-shadow: inset 0 0 0 1px rgba(126,146,168,.18);
+    }
+
+    .reset-action:hover {
+      transform: translateY(-1px);
+      color: var(--theme);
+      background: rgba(255,255,255,.66);
+    }
+
+    .hidden-input {
+      display: none;
+    }
+
+    @media (max-width: 1180px) {
+      .workspace {
+        grid-template-columns: 118px minmax(0, 1fr);
+        grid-template-areas:
+          "ratio canvas"
+          "panel panel";
+      }
+
+      .settings {
+        align-self: stretch;
+      }
+
+      .stage-card {
+        min-height: 560px;
+      }
+
+      .canvas-scroll {
+        min-height: 480px;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .page {
+        width: min(100% - 20px, 760px);
+        margin: 10px auto;
+        border-radius: 24px;
+        min-height: calc(100vh - 20px);
+      }
+
+      .topbar {
+        height: auto;
+        min-height: 76px;
+        padding: 14px 16px;
+        align-items: flex-start;
+      }
+
+      .brand-subtitle {
+        white-space: normal;
+      }
+
+      .actions {
+        gap: 6px;
+      }
+
+      .icon-action span {
+        display: none;
+      }
+
+      .icon-action {
+        width: 42px;
+        justify-content: center;
+        padding: 0;
+        background: rgba(255,255,255,.34);
+      }
+
+      .export-btn {
+        padding: 0 14px;
+      }
+
+      .export-btn span {
+        display: none;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "ratio"
+          "canvas"
+          "panel";
+        gap: 16px;
+        padding: 16px;
+      }
+
+      .ratio-rail {
+        width: 100%;
+        align-self: stretch;
+        justify-self: stretch;
+        padding: 14px;
+        border-radius: 22px;
+      }
+
+      .ratio-title {
+        text-align: left;
+        margin: 0 0 10px;
+      }
+
+      .ratio-list {
+        display: flex;
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
+      }
+
+      .ratio-button {
+        min-width: 84px;
+      }
+
+      .stage-card {
+        min-height: clamp(360px, 58vh, 560px);
+        padding: 16px;
+        border-radius: 24px;
+      }
+
+      .canvas-scroll {
+        min-height: clamp(320px, 52vh, 510px);
+        padding: 8px;
+      }
+
+      .settings {
+        padding: 20px 16px;
+        border-radius: 24px;
+      }
+
+      .mode-card {
+        min-height: 128px;
+      }
+
+      .upload-mark svg {
+        width: 92px;
+        height: 92px;
+      }
+
+      .upload-title {
+        font-size: 18px;
+      }
+
+      .upload-subtitle {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .topbar {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        justify-content: space-between;
+        width: 100%;
+      }
+
+      .mode-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .zoom-bar {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      .brand-title {
+        font-size: 16px;
+      }
+
+      .logo {
+        width: 40px;
+        height: 40px;
+      }
+    }
+
+
+    @media (max-width: 900px) {
+      .topbar {
+        display: grid;
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 76px;
+        padding: 14px 16px;
+        gap: 12px;
+      }
+
+      .brand {
+        width: 100%;
+      }
+
+      .brand-subtitle {
+        white-space: normal;
+      }
+
+      .actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .icon-action {
+        width: 42px;
+        justify-content: center;
+        padding: 0;
+        background: rgba(255,255,255,.34);
+      }
+
+      .icon-action span,
+      .export-btn span {
+        display: none;
+      }
+
+      .export-btn {
+        width: 42px;
+        padding: 0;
+      }
+    }
+
+    @media (max-width: 820px) {
+      body {
+        overflow-x: hidden;
+      }
+
+      .page {
+        width: calc(100vw - 16px);
+        max-width: calc(100vw - 16px);
+        margin: 8px auto;
+        border-radius: 22px;
+        min-height: calc(100vh - 16px);
+      }
+
+      .workspace {
+        width: 100%;
+        max-width: 100%;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+          "ratio"
+          "canvas"
+          "panel";
+        gap: 14px;
+        padding: 14px;
+        overflow: hidden;
+      }
+
+      .ratio-rail,
+      .canvas-section,
+      .settings,
+      .stage-card,
+      .canvas-scroll,
+      .zoom-bar {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .ratio-rail {
+        align-self: stretch;
+        justify-self: stretch;
+        padding: 14px;
+        border-radius: 22px;
+      }
+
+      .ratio-title {
+        text-align: left;
+        margin: 0 0 10px;
+      }
+
+      .ratio-list {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .ratio-button {
+        flex: 0 0 78px;
+        min-width: 78px;
+      }
+
+      .stage-card {
+        min-height: clamp(340px, 56vh, 560px);
+        padding: 12px;
+        border-radius: 22px;
+        overflow: hidden;
+      }
+
+      .canvas-scroll {
+        min-height: clamp(300px, 50vh, 510px);
+        padding: 6px;
+        overflow: auto;
+      }
+
+      .canvas-wrap {
+        min-width: 0;
+        min-height: 0;
+      }
+
+      canvas {
+        max-width: 100%;
+      }
+
+      .settings {
+        padding: 20px 16px;
+        border-radius: 22px;
+      }
+
+      .mode-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .mode-card {
+        min-height: 128px;
+        padding-left: 8px;
+        padding-right: 8px;
+      }
+
+      .mode-title {
+        font-size: 13px;
+      }
+
+      .mode-desc {
+        font-size: 11px;
+      }
+
+      .upload-mark svg {
+        width: 88px;
+        height: 88px;
+      }
+
+      .upload-title {
+        font-size: 18px;
+      }
+
+      .upload-subtitle {
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .page {
+        width: calc(100vw - 10px);
+        max-width: calc(100vw - 10px);
+        margin: 5px auto;
+        border-radius: 20px;
+      }
+
+      .topbar {
+        padding: 12px;
+      }
+
+      .workspace {
+        padding: 10px;
+        gap: 12px;
+      }
+
+      .brand {
+        gap: 10px;
+      }
+
+      .brand-title {
+        font-size: 15px;
+      }
+
+      .brand-subtitle {
+        font-size: 11px;
+      }
+
+      .logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+      }
+
+      .ratio-rail,
+      .settings,
+      .stage-card {
+        border-radius: 18px;
+      }
+
+      .mode-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .stage-card {
+        padding: 8px;
+      }
+
+      .zoom-bar {
+        justify-self: stretch;
+        display: grid;
+        grid-template-columns: 40px 40px minmax(54px, 1fr) 40px 40px;
+        gap: 4px;
+        padding: 6px;
+      }
+
+      .zoom-button,
+      .zoom-readout {
+        min-width: 0;
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="5" y="4" width="14" height="16" rx="4" stroke="currentColor" stroke-width="2"/>
+            <path d="M9 8h3M9 12h6M9 16h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="brand-title">画布扩展</h1>
+          <p class="brand-subtitle">自由扩展图片边界，支持放大与缩小</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="undoBtn" class="icon-action" type="button" title="撤销">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M9 8H5V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5.7 8.4A7 7 0 1 1 7.2 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>撤销</span>
+        </button>
+        <button id="redoBtn" class="icon-action" type="button" title="重做">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M15 8h4V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M18.3 8.4A7 7 0 1 0 16.8 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>重做</span>
+        </button>
+        <button id="downloadBtn" class="export-btn" type="button">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M12 4v10m0 0 4-4m-4 4-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <span>导出图片</span>
+        </button>
+      </div>
+    </header>
+
+    <input id="fileInput" class="hidden-input" type="file" accept="image/*" />
+
+    <main class="workspace">
+      <aside class="ratio-rail" aria-label="画布比例">
+        <p class="ratio-title">画布比例</p>
+        <div class="ratio-list">
+          <button class="ratio-button" type="button" data-ratio="3:4">
+            <span class="ratio-icon"><span class="ratio-shape shape-3-4"></span></span>
+            <span class="ratio-text">3:4</span>
+          </button>
+          <button class="ratio-button active" type="button" data-ratio="4:3">
+            <span class="ratio-icon"><span class="ratio-shape shape-4-3"></span></span>
+            <span class="ratio-text">4:3</span>
+          </button>
+          <button class="ratio-button" type="button" data-ratio="1:1">
+            <span class="ratio-icon"><span class="ratio-shape shape-1-1"></span></span>
+            <span class="ratio-text">1:1</span>
+          </button>
+          <button class="ratio-button" type="button" data-ratio="9:16">
+            <span class="ratio-icon"><span class="ratio-shape shape-9-16"></span></span>
+            <span class="ratio-text">9:16</span>
+          </button>
+          <button class="ratio-button" type="button" data-ratio="16:9">
+            <span class="ratio-icon"><span class="ratio-shape shape-16-9"></span></span>
+            <span class="ratio-text">16:9</span>
+          </button>
+        </div>
+      </aside>
+
+      <section class="canvas-section">
+        <div id="stageCard" class="stage-card">
+          <div id="canvasScroll" class="canvas-scroll">
+            <div class="canvas-wrap">
+              <canvas id="canvas"></canvas>
+              <div id="dropOverlay" class="drop-overlay">
+                <div class="upload-mark">
+                  <svg viewBox="0 0 120 120" fill="none">
+                    <rect x="21" y="22" width="78" height="76" rx="13" stroke="currentColor" stroke-width="8"/>
+                    <circle cx="78" cy="45" r="8" fill="currentColor"/>
+                    <path d="M25 80 48 57l20 22 13-13 17 18" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <p class="upload-title">点击上传图片</p>
+                  <p class="upload-subtitle">或拖拽图片到这里</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="zoom-bar" aria-label="画布视图控制">
+          <button id="panBtn" class="zoom-button" type="button" title="拖动画布">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M8 13V8a2 2 0 1 1 4 0v4-6a2 2 0 1 1 4 0v8l.4-.8a2 2 0 0 1 3.6 1.7l-1.8 4.2A6 6 0 0 1 12.7 23H11a6 6 0 0 1-5.7-4.1L4 15a2 2 0 0 1 3.8-1.2L8 14v-1Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button id="zoomOutBtn" class="zoom-button" type="button" title="缩小">−</button>
+          <span id="zoomText" class="zoom-readout">100%</span>
+          <button id="zoomInBtn" class="zoom-button" type="button" title="放大">＋</button>
+          <button id="fitBtn" class="zoom-button" type="button" title="适应窗口">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 4l5 5M20 4l-5 5M4 20l5-5M20 20l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </section>
+
+      <aside class="settings">
+        <div class="panel-group">
+          <h2 class="panel-heading">扩展模式</h2>
+          <div class="mode-grid">
+            <button id="modeRightDown" class="mode-card active" type="button">
+              <span class="mode-icon">
+                <svg viewBox="0 0 48 48" fill="none">
+                  <path d="M15 31v-9h9M15 31l9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M33 17v9h-9M33 17l-9 9" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".65"/>
+                  <path d="M24 11v8M24 11l-5 5M24 11l5 5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M37 24h-8M37 24l-5-5M37 24l-5 5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <span class="mode-title">向右和下扩展</span>
+              <span class="mode-desc">只在右侧和下方增加</span>
+            </button>
+
+            <button id="modeAround" class="mode-card" type="button">
+              <span class="mode-icon">
+                <svg viewBox="0 0 48 48" fill="none">
+                  <path d="M24 24 13 13M13 13h8M13 13v8" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M24 24 35 13M35 13h-8M35 13v8" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M24 24 13 35M13 35h8M13 35v-8" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M24 24 35 35M35 35h-8M35 35v-8" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="24" cy="24" r="3" fill="currentColor"/>
+                </svg>
+              </span>
+              <span class="mode-title">四周扩散</span>
+              <span class="mode-desc">向四周均匀增加</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-group">
+          <h2 class="panel-heading">比例输入</h2>
+          <div class="percent-input-wrap">
+            <input id="percentInput" class="percent-input" type="text" inputmode="decimal" value="20" aria-label="比例百分比" />
+            <span class="percent-symbol">%</span>
+          </div>
+          <p class="range-caption">用键盘输入比例。输入 20 表示放大到 120%；再对结果使用 20 逆向缩小，可回到放大前尺寸。</p>
+        </div>
+
+        <div class="panel-group">
+          <h2 class="panel-heading">扩展颜色</h2>
+          <div class="color-row">
+            <div class="color-left">
+              <span class="color-dot"></span>
+              <span>纯白色</span>
+            </div>
+            <span class="select-arrow">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="m7 10 5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </div>
+        </div>
+
+        <div class="panel-group tips">
+          <div class="tips-title">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 10v6M12 7h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            快捷提示
+          </div>
+          <p>· 向右和下扩展：只增加右侧和下方空间</p>
+          <p>· 四周扩散：四周均匀增加空间</p>
+          <p>· 缩小时使用同一比例的倒数，保证放大后可逆向回到原尺寸</p>
+        </div>
+
+        <div class="panel-group status-line">
+          <div><strong>当前状态：</strong><span id="stateText">黑色画布</span></div>
+          <div><strong>当前尺寸：</strong><span id="sizeText">-</span></div>
+          <div><strong>应用后尺寸：</strong><span id="nextSizeText">-</span></div>
+        </div>
+
+        <div class="panel-group">
+          <button id="expandBtn" class="primary-action" type="button">按比例放大</button>
+          <button id="shrinkBtn" class="reset-action strong-reset" type="button">按同一比例逆向缩小</button>
+          <button id="resetBtn" class="reset-action" type="button">重置</button>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    const fileInput = document.getElementById('fileInput');
+    const stageCard = document.getElementById('stageCard');
+    const canvasScroll = document.getElementById('canvasScroll');
+    const dropOverlay = document.getElementById('dropOverlay');
+
+    const ratioButtons = [...document.querySelectorAll('.ratio-button')];
+    const modeRightDown = document.getElementById('modeRightDown');
+    const modeAround = document.getElementById('modeAround');
+    const percentInput = document.getElementById('percentInput');
+
+    const expandBtn = document.getElementById('expandBtn');
+    const shrinkBtn = document.getElementById('shrinkBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomText = document.getElementById('zoomText');
+    const fitBtn = document.getElementById('fitBtn');
+    const panBtn = document.getElementById('panBtn');
+
+    const stateText = document.getElementById('stateText');
+    const sizeText = document.getElementById('sizeText');
+    const nextSizeText = document.getElementById('nextSizeText');
+
+    let selectedRatio = '4:3';
+    let mode = 'rightDown';
+    let hasUploadedImage = false;
+    let uploadedOriginal = null;
+    let history = [];
+    let historyIndex = -1;
+    let isRestoring = false;
+    let zoom = 1;
+    let fitScale = 1;
+    let panMode = false;
+
+    function parseRatio(value) {
+      const [w, h] = value.split(':').map(Number);
+      return { w, h };
+    }
+
+    function placeholderSizeByRatio(ratioValue) {
+      const ratio = parseRatio(ratioValue);
+      const maxSide = 1200;
+
+      if (ratio.w === ratio.h) {
+        return { width: 1000, height: 1000 };
+      }
+
+      if (ratio.w > ratio.h) {
+        return {
+          width: maxSide,
+          height: Math.round(maxSide * ratio.h / ratio.w)
+        };
+      }
+
+      return {
+        width: Math.round(maxSide * ratio.w / ratio.h),
+        height: maxSide
+      };
+    }
+
+    function drawPlaceholder(saveHistory = true) {
+      const size = placeholderSizeByRatio(selectedRatio);
+      canvas.width = size.width;
+      canvas.height = size.height;
+      ctx.save();
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      hasUploadedImage = false;
+      uploadedOriginal = null;
+      zoom = 1;
+      updateOverlay();
+      animateCanvas();
+      updateCanvasView();
+      updateInfo();
+
+      if (saveHistory) pushHistory('黑色画布');
+    }
+
+    function animateCanvas() {
+      canvas.classList.add('updating');
+      window.setTimeout(() => canvas.classList.remove('updating'), 180);
+    }
+
+    function updateOverlay() {
+      dropOverlay.classList.toggle('hidden', hasUploadedImage);
+    }
+
+    function getDeltaPercent() {
+      const normalized = String(percentInput.value).trim().replace(/[％%]/g, '').replace(',', '.');
+      const value = Number(normalized);
+      return Number.isFinite(value) ? Math.max(0, value) : 20;
+    }
+
+    function getFactor() {
+      return 1 + getDeltaPercent() / 100;
+    }
+
+    function getNextSize(operation = 'expand') {
+      const factor = getFactor();
+
+      if (operation === 'shrink') {
+        return {
+          width: Math.max(1, Math.round(canvas.width / factor)),
+          height: Math.max(1, Math.round(canvas.height / factor)),
+          factor
+        };
+      }
+
+      return {
+        width: Math.max(1, Math.round(canvas.width * factor)),
+        height: Math.max(1, Math.round(canvas.height * factor)),
+        factor
+      };
+    }
+
+    function copyCanvas() {
+      const temp = document.createElement('canvas');
+      temp.width = canvas.width;
+      temp.height = canvas.height;
+      temp.getContext('2d').drawImage(canvas, 0, 0);
+      return temp;
+    }
+
+    function expandByPercent() {
+      const oldCanvas = copyCanvas();
+      const oldW = canvas.width;
+      const oldH = canvas.height;
+      const next = getNextSize('expand');
+      const newW = next.width;
+      const newH = next.height;
+
+      canvas.width = newW;
+      canvas.height = newH;
+
+      ctx.save();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, newW, newH);
+
+      if (mode === 'around') {
+        const dx = Math.floor((newW - oldW) / 2);
+        const dy = Math.floor((newH - oldH) / 2);
+        ctx.drawImage(oldCanvas, dx, dy);
+      } else {
+        ctx.drawImage(oldCanvas, 0, 0);
+      }
+
+      ctx.restore();
+
+      animateCanvas();
+      updateCanvasView();
+      updateInfo();
+      pushHistory('按比例放大');
+    }
+
+    function shrinkBySamePercent() {
+      const oldCanvas = copyCanvas();
+      const oldW = canvas.width;
+      const oldH = canvas.height;
+      const next = getNextSize('shrink');
+      const newW = next.width;
+      const newH = next.height;
+
+      canvas.width = newW;
+      canvas.height = newH;
+      ctx.clearRect(0, 0, newW, newH);
+
+      if (mode === 'around') {
+        const sx = Math.max(0, Math.floor((oldW - newW) / 2));
+        const sy = Math.max(0, Math.floor((oldH - newH) / 2));
+        ctx.drawImage(oldCanvas, sx, sy, newW, newH, 0, 0, newW, newH);
+      } else {
+        ctx.drawImage(oldCanvas, 0, 0, newW, newH, 0, 0, newW, newH);
+      }
+
+      animateCanvas();
+      updateCanvasView();
+      updateInfo();
+      pushHistory('按同一比例逆向缩小');
+    }
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      modeRightDown.classList.toggle('active', mode === 'rightDown');
+      modeAround.classList.toggle('active', mode === 'around');
+      updateInfo();
+    }
+
+    function setRatio(nextRatio) {
+      selectedRatio = nextRatio;
+      ratioButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.ratio === selectedRatio));
+
+      if (!hasUploadedImage) {
+        drawPlaceholder(true);
+      }
+    }
+
+    function updateRangeVisual() {
+      const value = getDeltaPercent();
+      if (String(percentInput.value).trim() === '' || !Number.isFinite(Number(String(percentInput.value).trim().replace(/[％%]/g, '').replace(',', '.')))) {
+        nextSizeText.textContent = '请输入有效比例';
+      }
+    }
+
+    function updateInfo() {
+      updateRangeVisual();
+      const next = getNextSize('expand');
+      stateText.textContent = hasUploadedImage ? '已上传图片' : `黑色画布 ${selectedRatio}`;
+      sizeText.textContent = `${canvas.width} × ${canvas.height} px`;
+      nextSizeText.textContent = `放大：${next.width} × ${next.height} px；缩小：${getNextSize('shrink').width} × ${getNextSize('shrink').height} px`;
+    }
+
+    function pushHistory(label) {
+      if (isRestoring) return;
+
+      const state = {
+        url: canvas.toDataURL('image/png'),
+        width: canvas.width,
+        height: canvas.height,
+        hasUploadedImage,
+        selectedRatio,
+        label
+      };
+
+      history = history.slice(0, historyIndex + 1);
+      history.push(state);
+
+      if (history.length > 30) {
+        history.shift();
+      }
+
+      historyIndex = history.length - 1;
+      updateHistoryButtons();
+    }
+
+    function restoreHistory(index) {
+      if (index < 0 || index >= history.length) return;
+
+      isRestoring = true;
+      const state = history[index];
+      const img = new Image();
+
+      img.onload = () => {
+        canvas.width = state.width;
+        canvas.height = state.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        hasUploadedImage = state.hasUploadedImage;
+        selectedRatio = state.selectedRatio || selectedRatio;
+        ratioButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.ratio === selectedRatio));
+
+        historyIndex = index;
+        isRestoring = false;
+        animateCanvas();
+        updateOverlay();
+        updateCanvasView();
+        updateInfo();
+        updateHistoryButtons();
+      };
+
+      img.src = state.url;
+    }
+
+    function updateHistoryButtons() {
+      undoBtn.disabled = historyIndex <= 0;
+      redoBtn.disabled = historyIndex >= history.length - 1;
+    }
+
+    function undo() {
+      if (historyIndex > 0) {
+        restoreHistory(historyIndex - 1);
+      }
+    }
+
+    function redo() {
+      if (historyIndex < history.length - 1) {
+        restoreHistory(historyIndex + 1);
+      }
+    }
+
+    async function loadImageFile(file) {
+      if (!file || !file.type || !file.type.startsWith('image/')) return;
+
+      try {
+        const bitmap = await createImageBitmap(file);
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(bitmap, 0, 0);
+
+        hasUploadedImage = true;
+        uploadedOriginal = canvas.toDataURL('image/png');
+        zoom = 1;
+
+        updateOverlay();
+        animateCanvas();
+        updateCanvasView();
+        updateInfo();
+        pushHistory('上传图片');
+      } catch (err) {
+        alert('图片读取失败，请更换一张常见格式的图片。');
+      }
+    }
+
+    function resetCanvas() {
+      if (uploadedOriginal) {
+        const img = new Image();
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          hasUploadedImage = true;
+          zoom = 1;
+          updateOverlay();
+          animateCanvas();
+          updateCanvasView();
+          updateInfo();
+          pushHistory('重置原图');
+        };
+        img.src = uploadedOriginal;
+      } else {
+        drawPlaceholder(true);
+      }
+    }
+
+    function downloadCanvas() {
+      const a = document.createElement('a');
+      const modeName = mode === 'around' ? 'around' : 'right-down';
+      const delta = getDeltaPercent();
+      a.download = `canvas-expand_${modeName}_${delta}percent_${canvas.width}x${canvas.height}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    }
+
+    function computeFitScale() {
+      const rect = canvasScroll.getBoundingClientRect();
+      const viewportW = Math.min(window.innerWidth || 360, document.documentElement.clientWidth || 360);
+      const safeRectW = Math.min(rect.width || viewportW, viewportW - 28);
+      const availableW = Math.max(60, safeRectW - 18);
+      const availableH = Math.max(60, (rect.height || 360) - 18);
+      fitScale = Math.min(availableW / canvas.width, availableH / canvas.height, 1);
+      if (!Number.isFinite(fitScale) || fitScale <= 0) fitScale = 1;
+    }
+
+    function updateCanvasView() {
+      computeFitScale();
+      const displayScale = fitScale * zoom;
+      canvas.style.width = `${Math.max(1, Math.round(canvas.width * displayScale))}px`;
+      canvas.style.height = `${Math.max(1, Math.round(canvas.height * displayScale))}px`;
+      zoomText.textContent = `${Math.round(zoom * 100)}%`;
+    }
+
+    function setZoom(nextZoom) {
+      const beforeLeft = canvasScroll.scrollLeft;
+      const beforeTop = canvasScroll.scrollTop;
+      zoom = Math.min(4, Math.max(.25, nextZoom));
+      updateCanvasView();
+      requestAnimationFrame(() => {
+        canvasScroll.scrollLeft = beforeLeft;
+        canvasScroll.scrollTop = beforeTop;
+      });
+    }
+
+    function togglePan() {
+      panMode = !panMode;
+      panBtn.classList.toggle('active', panMode);
+      canvasScroll.classList.toggle('panning', panMode);
+    }
+
+    function bindDragPan() {
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      let scrollLeft = 0;
+      let scrollTop = 0;
+
+      canvasScroll.addEventListener('pointerdown', (event) => {
+        if (!panMode) return;
+        dragging = true;
+        startX = event.clientX;
+        startY = event.clientY;
+        scrollLeft = canvasScroll.scrollLeft;
+        scrollTop = canvasScroll.scrollTop;
+        canvasScroll.classList.add('is-dragging');
+        canvasScroll.setPointerCapture(event.pointerId);
+      });
+
+      canvasScroll.addEventListener('pointermove', (event) => {
+        if (!dragging || !panMode) return;
+        const dx = event.clientX - startX;
+        const dy = event.clientY - startY;
+        canvasScroll.scrollLeft = scrollLeft - dx;
+        canvasScroll.scrollTop = scrollTop - dy;
+      });
+
+      canvasScroll.addEventListener('pointerup', (event) => {
+        dragging = false;
+        canvasScroll.classList.remove('is-dragging');
+        try { canvasScroll.releasePointerCapture(event.pointerId); } catch (e) {}
+      });
+
+      canvasScroll.addEventListener('pointercancel', () => {
+        dragging = false;
+        canvasScroll.classList.remove('is-dragging');
+      });
+    }
+
+    ratioButtons.forEach(btn => {
+      btn.addEventListener('click', () => setRatio(btn.dataset.ratio));
+    });
+
+    modeRightDown.addEventListener('click', () => setMode('rightDown'));
+    modeAround.addEventListener('click', () => setMode('around'));
+
+    percentInput.addEventListener('input', updateInfo);
+    percentInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') expandByPercent();
+    });
+    expandBtn.addEventListener('click', expandByPercent);
+    shrinkBtn.addEventListener('click', shrinkBySamePercent);
+    resetBtn.addEventListener('click', resetCanvas);
+    undoBtn.addEventListener('click', undo);
+    redoBtn.addEventListener('click', redo);
+    downloadBtn.addEventListener('click', downloadCanvas);
+
+    zoomOutBtn.addEventListener('click', () => setZoom(zoom - .1));
+    zoomInBtn.addEventListener('click', () => setZoom(zoom + .1));
+    fitBtn.addEventListener('click', () => setZoom(1));
+    panBtn.addEventListener('click', togglePan);
+
+    stageCard.addEventListener('click', (event) => {
+      if (panMode) return;
+      if (event.target.closest('.zoom-bar')) return;
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      await loadImageFile(file);
+      fileInput.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach(type => {
+      stageCard.addEventListener(type, (event) => {
+        event.preventDefault();
+        stageCard.classList.add('drop-highlight');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(type => {
+      stageCard.addEventListener(type, (event) => {
+        event.preventDefault();
+        stageCard.classList.remove('drop-highlight');
+      });
+    });
+
+    stageCard.addEventListener('drop', async (event) => {
+      const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
+      await loadImageFile(file);
+    });
+
+    window.addEventListener('resize', () => requestAnimationFrame(updateCanvasView));
+    window.addEventListener('orientationchange', () => setTimeout(updateCanvasView, 220));
+    bindDragPan();
+
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(() => updateCanvasView()).observe(canvasScroll);
+    }
+
+    drawPlaceholder(false);
+    pushHistory('初始画布');
+    updateHistoryButtons();
+  </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"7939e04a4baf43c8b86a560f74aac60e","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
