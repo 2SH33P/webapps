@@ -1,11 +1,11 @@
-const CACHE_VERSION = "gomoku-pwa-v5";
+const CACHE_VERSION = "gomoku-pwa-v6";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=5",
-  "./game.js?v=5",
-  "./config.js?v=5",
-  "./pwa.js?v=5",
+  "./styles.css?v=6",
+  "./game.js?v=6",
+  "./config.js?v=6",
+  "./pwa.js?v=6",
   "./manifest.webmanifest",
   "./assets/icons/icon-192.png",
   "./assets/icons/icon-512.png",
@@ -71,6 +71,7 @@ async function networkFirst(request) {
     throw error;
   }
 }
+
 
 
 

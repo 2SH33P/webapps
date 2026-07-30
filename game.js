@@ -125,6 +125,7 @@
     let pendingMove;
     let undoCounts;
     let lastUndoPlayer;
+    let stoneElements;
 
     boardEl.style.setProperty("--board-size", String(config.boardSize));
     boardEl.style.setProperty("--grid-cell", boardPercent(1, config.boardSize));
@@ -141,6 +142,8 @@
       pendingMove = null;
       undoCounts = { [BLACK]: 0, [WHITE]: 0 };
       lastUndoPlayer = null;
+      stoneElements = new Map();
+      stoneLayer.textContent = "";
       renderAll();
     }
 
@@ -315,25 +318,39 @@
     }
 
     function renderStones() {
-      stoneLayer.textContent = "";
+      const occupiedKeys = new Set();
+
       for (let row = 0; row < config.boardSize; row += 1) {
         for (let col = 0; col < config.boardSize; col += 1) {
           const player = board[row][col];
           if (!player) continue;
 
-          const stone = document.createElement("span");
-          stone.className = `stone ${player}`;
-          stone.style.setProperty("--x", boardPercent(col, config.boardSize));
-          stone.style.setProperty("--y", boardPercent(row, config.boardSize));
+          const key = cellKey(row, col);
+          occupiedKeys.add(key);
 
-          if (lastMove && lastMove.row === row && lastMove.col === col) {
-            stone.classList.add("last");
-          }
-          if (winningKeys.has(cellKey(row, col))) {
-            stone.classList.add("winning");
+          let stone = stoneElements.get(key);
+          if (!stone) {
+            stone = document.createElement("span");
+            stone.className = `stone ${player}`;
+            stone.dataset.key = key;
+            stone.dataset.player = player;
+            stone.style.setProperty("--x", boardPercent(col, config.boardSize));
+            stone.style.setProperty("--y", boardPercent(row, config.boardSize));
+            stoneLayer.appendChild(stone);
+            stoneElements.set(key, stone);
           }
 
-          stoneLayer.appendChild(stone);
+          stone.classList.toggle("black", player === BLACK);
+          stone.classList.toggle("white", player === WHITE);
+          stone.classList.toggle("last", Boolean(lastMove && lastMove.row === row && lastMove.col === col));
+          stone.classList.toggle("winning", winningKeys.has(key));
+        }
+      }
+
+      for (const [key, stone] of stoneElements) {
+        if (!occupiedKeys.has(key)) {
+          stone.remove();
+          stoneElements.delete(key);
         }
       }
     }
