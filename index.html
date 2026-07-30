@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
   <title>五子棋 · Gomoku</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <main class="app-shell" aria-labelledby="app-title">
@@ -24,44 +24,66 @@
           <span class="mini-stone black" aria-hidden="true"></span>
           <span id="turnText">黑棋回合</span>
         </div>
-        <p class="status-text" id="statusText">第一次点击会落下黑棋。</p>
+        <p class="status-text" id="statusText">先点击交点框选，再点同一方框确认落子。</p>
       </div>
     </section>
 
-    <section class="board-section" aria-label="五子棋棋盘">
-      <div class="board-wrap">
-        <div class="board" id="board" role="grid" aria-label="15乘15五子棋棋盘">
-          <div class="stars" aria-hidden="true">
-            <span style="--x:21.428571%; --y:21.428571%"></span>
-            <span style="--x:50%; --y:21.428571%"></span>
-            <span style="--x:78.571429%; --y:21.428571%"></span>
-            <span style="--x:21.428571%; --y:50%"></span>
-            <span style="--x:50%; --y:50%"></span>
-            <span style="--x:78.571429%; --y:50%"></span>
-            <span style="--x:21.428571%; --y:78.571429%"></span>
-            <span style="--x:50%; --y:78.571429%"></span>
-            <span style="--x:78.571429%; --y:78.571429%"></span>
+    <div class="game-layout">
+      <section class="board-section" aria-label="五子棋棋盘">
+        <div class="board-wrap">
+          <div class="board" id="board" role="grid" aria-label="15乘15五子棋棋盘">
+            <div class="stars" aria-hidden="true">
+              <span style="--x:21.428571%; --y:21.428571%"></span>
+              <span style="--x:50%; --y:21.428571%"></span>
+              <span style="--x:78.571429%; --y:21.428571%"></span>
+              <span style="--x:21.428571%; --y:50%"></span>
+              <span style="--x:50%; --y:50%"></span>
+              <span style="--x:78.571429%; --y:50%"></span>
+              <span style="--x:21.428571%; --y:78.571429%"></span>
+              <span style="--x:50%; --y:78.571429%"></span>
+              <span style="--x:78.571429%; --y:78.571429%"></span>
+            </div>
+            <div class="point-layer" id="pointLayer"></div>
+            <div class="stone-layer" id="stoneLayer" aria-hidden="true"></div>
           </div>
-          <div class="point-layer" id="pointLayer"></div>
-          <div class="stone-layer" id="stoneLayer" aria-hidden="true"></div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <aside class="undo-sidebar" aria-label="悔棋统计">
+        <p class="eyebrow">Undo</p>
+        <h2>悔棋统计</h2>
+        <p class="undo-message" id="undoMessage">还没有悔棋。</p>
+        <div class="undo-stat-grid">
+          <div class="undo-stat">
+            <span class="mini-stone black" aria-hidden="true"></span>
+            <span>黑棋悔棋</span>
+            <strong id="blackUndoCount">0</strong>
+          </div>
+          <div class="undo-stat">
+            <span class="mini-stone white" aria-hidden="true"></span>
+            <span>白棋悔棋</span>
+            <strong id="whiteUndoCount">0</strong>
+          </div>
+        </div>
+        <p class="confirm-hint" id="confirmHint">每手棋需要点击同一交点两次。</p>
+      </aside>
+    </div>
 
     <section class="control-panel" aria-label="游戏控制">
       <div class="counter-card">
-        <span class="counter-label">剩余悔棋</span>
-        <strong id="undoCounter">3</strong>
+        <span class="counter-label">悔棋模式</span>
+        <strong id="undoCounter">∞</strong>
       </div>
       <button class="control-button secondary" id="undoButton" type="button">悔棋</button>
       <button class="control-button primary" id="restartButton" type="button">重新开始</button>
     </section>
   </main>
 
-  <script src="config.js"></script>
-  <script src="game.js"></script>
-  <script src="pwa.js"></script>
+  <script src="config.js?v=5"></script>
+  <script src="game.js?v=5"></script>
+  <script src="pwa.js?v=5"></script>
 </body>
 </html>
+
 
 

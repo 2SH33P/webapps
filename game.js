@@ -5,7 +5,7 @@
   const WHITE = "white";
   const EMPTY = null;
   const WIN_LENGTH = 5;
-  const DEFAULT_CONFIG = Object.freeze({ maxUndoCount: 3, boardSize: 15 });
+  const DEFAULT_CONFIG = Object.freeze({ maxUndoCount: Infinity, boardSize: 15 });
   const DIRECTIONS = Object.freeze([
     [1, 0],
     [0, 1],
@@ -15,9 +15,12 @@
 
   function normalizeConfig(rawConfig) {
     const source = rawConfig && typeof rawConfig === "object" ? rawConfig : {};
-    const maxUndoCount = Number.isFinite(Number(source.maxUndoCount))
-      ? Math.max(0, Math.floor(Number(source.maxUndoCount)))
-      : DEFAULT_CONFIG.maxUndoCount;
+    const rawMaxUndoCount = source.maxUndoCount;
+    const maxUndoCount = rawMaxUndoCount === Infinity || rawMaxUndoCount === "Infinity" || rawMaxUndoCount === "unlimited"
+      ? Infinity
+      : Number.isFinite(Number(rawMaxUndoCount))
+        ? Math.max(0, Math.floor(Number(rawMaxUndoCount)))
+        : DEFAULT_CONFIG.maxUndoCount;
     const boardSize = Number.isFinite(Number(source.boardSize))
       ? Math.max(WIN_LENGTH, Math.floor(Number(source.boardSize)))
       : DEFAULT_CONFIG.boardSize;
@@ -85,6 +88,10 @@
     return size <= 1 ? "0%" : `${(index / (size - 1)) * 100}%`;
   }
 
+  function sameCell(a, b) {
+    return Boolean(a && b && a.row === b.row && a.col === b.col);
+  }
+
   function bootDomGame() {
     if (!root.document) return;
 
@@ -96,10 +103,14 @@
     const turnText = document.getElementById("turnText");
     const statusText = document.getElementById("statusText");
     const undoCounter = document.getElementById("undoCounter");
+    const undoMessage = document.getElementById("undoMessage");
+    const blackUndoCount = document.getElementById("blackUndoCount");
+    const whiteUndoCount = document.getElementById("whiteUndoCount");
+    const confirmHint = document.getElementById("confirmHint");
     const undoButton = document.getElementById("undoButton");
     const restartButton = document.getElementById("restartButton");
 
-    if (!boardEl || !pointLayer || !stoneLayer || !turnPill || !turnText || !statusText || !undoCounter || !undoButton || !restartButton) {
+    if (!boardEl || !pointLayer || !stoneLayer || !turnPill || !turnText || !statusText || !undoCounter || !undoMessage || !blackUndoCount || !whiteUndoCount || !confirmHint || !undoButton || !restartButton) {
       return;
     }
 
@@ -111,6 +122,9 @@
     let winningKeys;
     let lastMove;
     let activePress;
+    let pendingMove;
+    let undoCounts;
+    let lastUndoPlayer;
 
     boardEl.style.setProperty("--board-size", String(config.boardSize));
     boardEl.style.setProperty("--grid-cell", boardPercent(1, config.boardSize));
@@ -124,6 +138,9 @@
       winningKeys = new Set();
       lastMove = null;
       activePress = null;
+      pendingMove = null;
+      undoCounts = { [BLACK]: 0, [WHITE]: 0 };
+      lastUndoPlayer = null;
       renderAll();
     }
 
@@ -165,6 +182,10 @@
       return !winner && isInside(board, row, col) && board[row][col] === EMPTY;
     }
 
+    function hasUndoQuota() {
+      return config.maxUndoCount === Infinity || undoUsed < config.maxUndoCount;
+    }
+
     function handlePointerDown(event) {
       if (event.button !== undefined && event.button !== 0) return;
       const { point, row, col } = getPointFromEvent(event);
@@ -200,7 +221,7 @@
       clearActivePress();
 
       if (!cancelled) {
-        placeStone(row, col);
+        handleBoardSelection(row, col);
       }
     }
 
@@ -215,7 +236,20 @@
       const { row, col } = getPointFromEvent(event);
       if (!canPlace(row, col)) return;
       event.preventDefault();
-      placeStone(row, col);
+      handleBoardSelection(row, col);
+    }
+
+    function handleBoardSelection(row, col) {
+      if (!canPlace(row, col)) return false;
+
+      const selectedMove = { row, col, player: currentPlayer };
+      if (sameCell(pendingMove, selectedMove) && pendingMove.player === currentPlayer) {
+        return placeStone(row, col);
+      }
+
+      pendingMove = selectedMove;
+      renderAll();
+      return false;
     }
 
     function placeStone(row, col) {
@@ -224,6 +258,7 @@
       board[row][col] = currentPlayer;
       lastMove = { row, col, player: currentPlayer };
       moveHistory.push(lastMove);
+      pendingMove = null;
 
       const result = checkWinnerFromMove(board, row, col);
       if (result) {
@@ -238,14 +273,17 @@
     }
 
     function undoMove() {
-      if (moveHistory.length === 0 || undoUsed >= config.maxUndoCount) return false;
+      if (moveHistory.length === 0 || !hasUndoQuota()) return false;
 
       const move = moveHistory.pop();
       board[move.row][move.col] = EMPTY;
       currentPlayer = move.player;
       undoUsed += 1;
+      undoCounts[move.player] += 1;
+      lastUndoPlayer = move.player;
       winner = null;
       winningKeys = new Set();
+      pendingMove = null;
       lastMove = moveHistory.length > 0 ? moveHistory[moveHistory.length - 1] : null;
       renderAll();
       return true;
@@ -264,11 +302,14 @@
         const occupied = board[row][col] !== EMPTY;
         const disabled = occupied || Boolean(winner);
         point.disabled = disabled;
-        point.classList.remove("preview-black", "preview-white", "is-pressing", "is-cancelled");
+        point.classList.remove("preview-black", "preview-white", "is-pressing", "is-cancelled", "is-pending");
         point.classList.add(`preview-${currentPlayer}`);
+        if (!disabled && pendingMove && pendingMove.row === row && pendingMove.col === col && pendingMove.player === currentPlayer) {
+          point.classList.add("is-pending");
+        }
         point.setAttribute(
           "aria-label",
-          `${row + 1}行${col + 1}列，${occupied ? playerName(board[row][col]) : winner ? "已锁定" : `${playerName(currentPlayer)}可落子`}`
+          `${row + 1}行${col + 1}列，${occupied ? playerName(board[row][col]) : winner ? "已锁定" : pendingMove && pendingMove.row === row && pendingMove.col === col ? `已框选，第二次点击确认${playerName(currentPlayer)}落子` : `${playerName(currentPlayer)}可框选`}`
         );
       }
     }
@@ -298,9 +339,13 @@
     }
 
     function renderStatus() {
-      const remainingUndo = Math.max(0, config.maxUndoCount - undoUsed);
-      undoCounter.textContent = String(remainingUndo);
-      undoButton.disabled = moveHistory.length === 0 || remainingUndo === 0;
+      undoCounter.textContent = config.maxUndoCount === Infinity ? "∞" : String(Math.max(0, config.maxUndoCount - undoUsed));
+      undoButton.disabled = moveHistory.length === 0 || !hasUndoQuota();
+      blackUndoCount.textContent = String(undoCounts[BLACK]);
+      whiteUndoCount.textContent = String(undoCounts[WHITE]);
+      undoMessage.textContent = lastUndoPlayer
+        ? `${playerName(lastUndoPlayer)}悔棋，撤回了上一手。`
+        : "还没有悔棋。";
 
       turnPill.classList.toggle("winner", Boolean(winner));
       const stone = turnPill.querySelector(".mini-stone");
@@ -312,14 +357,21 @@
       if (winner) {
         turnText.textContent = `${playerName(winner)}获胜`;
         statusText.textContent = "棋局已锁定，可重新开始或悔棋复盘。";
+        confirmHint.textContent = "获胜后可继续悔棋复盘。";
       } else if (moveHistory.length === config.boardSize * config.boardSize) {
         turnText.textContent = "平局";
         statusText.textContent = "棋盘已满，可重新开始。";
+        confirmHint.textContent = "棋盘已满，可重新开始或悔棋。";
+      } else if (pendingMove) {
+        turnText.textContent = `${playerName(currentPlayer)}待确认`;
+        statusText.textContent = `已框选第 ${pendingMove.row + 1} 行第 ${pendingMove.col + 1} 列，再点同一方框确认落子。`;
+        confirmHint.textContent = "点其他交点会移动方框，不会直接落子。";
       } else {
         turnText.textContent = `${playerName(currentPlayer)}回合`;
         statusText.textContent = moveHistory.length === 0
-          ? "第一次点击会落下黑棋。"
+          ? "黑棋先手：先点击交点显示方框，再点同一方框确认。"
           : `第 ${moveHistory.length + 1} 手，轮到${playerName(currentPlayer)}。`;
+        confirmHint.textContent = "每手棋都需要二次点击确认。";
       }
     }
 
@@ -339,10 +391,14 @@
           currentPlayer,
           moveHistory: moveHistory.slice(),
           undoUsed,
+          undoCounts: { ...undoCounts },
+          pendingMove: pendingMove ? { ...pendingMove } : null,
+          lastUndoPlayer,
           winner,
-          remainingUndo: Math.max(0, config.maxUndoCount - undoUsed)
+          remainingUndo: config.maxUndoCount === Infinity ? Infinity : Math.max(0, config.maxUndoCount - undoUsed)
         };
       },
+      handleBoardSelection,
       placeStone,
       undoMove,
       resetGame
