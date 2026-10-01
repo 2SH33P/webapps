@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f2efe8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="五子棋" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+  <title>五子棋 · Gomoku</title>
+  <link rel="stylesheet" href="styles.css?v=6" />
+</head>
+<body>
+  <main class="app-shell" aria-labelledby="app-title">
+    <section class="hero-card" aria-live="polite">
+      <div>
+        <p class="eyebrow">Gomoku</p>
+        <h1 id="app-title">五子棋</h1>
+      </div>
+      <div class="status-stack">
+        <div class="turn-pill" id="turnPill">
+          <span class="mini-stone black" aria-hidden="true"></span>
+          <span id="turnText">黑棋回合</span>
+        </div>
+        <p class="status-text" id="statusText">先点击交点框选，再点同一方框确认落子。</p>
+      </div>
+    </section>
+
+    <div class="game-layout">
+      <section class="board-section" aria-label="五子棋棋盘">
+        <div class="board-wrap">
+          <div class="board" id="board" role="grid" aria-label="15乘15五子棋棋盘">
+            <div class="stars" aria-hidden="true">
+              <span style="--x:21.428571%; --y:21.428571%"></span>
+              <span style="--x:50%; --y:21.428571%"></span>
+              <span style="--x:78.571429%; --y:21.428571%"></span>
+              <span style="--x:21.428571%; --y:50%"></span>
+              <span style="--x:50%; --y:50%"></span>
+              <span style="--x:78.571429%; --y:50%"></span>
+              <span style="--x:21.428571%; --y:78.571429%"></span>
+              <span style="--x:50%; --y:78.571429%"></span>
+              <span style="--x:78.571429%; --y:78.571429%"></span>
+            </div>
+            <div class="point-layer" id="pointLayer"></div>
+            <div class="stone-layer" id="stoneLayer" aria-hidden="true"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="undo-sidebar" aria-label="悔棋统计">
+        <p class="eyebrow">Undo</p>
+        <h2>悔棋统计</h2>
+        <p class="undo-message" id="undoMessage">还没有悔棋。</p>
+        <div class="undo-stat-grid">
+          <div class="undo-stat">
+            <span class="mini-stone black" aria-hidden="true"></span>
+            <span>黑棋悔棋</span>
+            <strong id="blackUndoCount">0</strong>
+          </div>
+          <div class="undo-stat">
+            <span class="mini-stone white" aria-hidden="true"></span>
+            <span>白棋悔棋</span>
+            <strong id="whiteUndoCount">0</strong>
+          </div>
+        </div>
+        <p class="confirm-hint" id="confirmHint">每手棋需要点击同一交点两次。</p>
+      </aside>
+    </div>
+
+    <section class="control-panel" aria-label="游戏控制">
+      <div class="counter-card">
+        <span class="counter-label">悔棋模式</span>
+        <strong id="undoCounter">∞</strong>
+      </div>
+      <button class="control-button secondary" id="undoButton" type="button">悔棋</button>
+      <button class="control-button primary" id="restartButton" type="button">重新开始</button>
+    </section>
+  </main>
+
+  <script src="config.js?v=6"></script>
+  <script src="game.js?v=6"></script>
+  <script src="pwa.js?v=6"></script>
+</body>
+</html>
+
+
+
+
