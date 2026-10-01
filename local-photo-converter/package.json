@@ -1,0 +1,12 @@
+{
+  "name": "local-webp-converter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pure local image format converter powered by Node.js and browser APIs.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
