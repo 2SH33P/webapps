@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaTeX 转 GeoGebra 工具</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- KaTeX for LaTeX rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;700&family=Fira+Code:wght@400;500&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .mono {
+            font-family: 'Fira Code', monospace;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 1);
+        }
+        .btn-tool {
+            @apply px-3 py-1 bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-600 rounded text-sm transition-colors border border-gray-200;
+        }
+        /* 在这里调大 KaTeX 预览文字的大小 */
+        #latexPreview {
+            font-size: 2.25rem; /* 约 36px，您可以根据需要调整此数值 */
+        }
+        #latexPreview .katex-display {
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen py-10 px-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- 标题区 -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-slate-800 mb-3">LaTeX ➔ GeoGebra</h1>
+            <p class="text-slate-500">智能转换公式 <code class="bg-gray-200 px-1 rounded text-pink-600">*</code></p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-8">
+            <!-- 输入区 -->
+            <div class="glass p-8 rounded-3xl shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <label class="block text-sm font-bold text-slate-700">LaTeX 源码输入</label>
+                    <div class="flex gap-2">
+                        <button onclick="insertText('\\frac{ }{ }')" class="btn-tool">分式</button>
+                        <button onclick="insertText('\\sqrt{ }')" class="btn-tool">根号</button>
+                        <button onclick="insertText('P_mt_2')" class="btn-tool">测试用例</button>
+                        <button onclick="clearInput()" class="btn-tool bg-red-50 text-red-500 border-red-100 hover:bg-red-100">清空</button>
+                    </div>
+                </div>
+                <textarea 
+                    id="latexInput" 
+                    class="w-full h-36 p-5 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all mono text-xl shadow-inner"
+                    placeholder="例如：P_mt_2 - mgH"
+                >P_mt_2 - mgH</textarea>
+                
+                <!-- 实时渲染 -->
+                <div class="mt-6">
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">数学预览 (已调大字号)</span>
+                    <div class="mt-2 p-6 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-center min-h-[120px] overflow-auto">
+                        <div id="latexPreview"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 输出区 -->
+            <div class="glass p-8 rounded-3xl shadow-xl border-t-8 border-blue-600">
+                <div class="flex justify-between items-center mb-4">
+                    <label class="block text-sm font-bold text-slate-700">GeoGebra 指令</label>
+                    <span class="text-xs text-blue-500 font-medium">已自动添加乘号 *</span>
+                </div>
+                <div class="relative group">
+                    <div 
+                        id="ggbOutput" 
+                        class="w-full min-h-[100px] p-6 bg-slate-900 text-blue-300 rounded-2xl mono text-2xl break-all flex items-center leading-relaxed"
+                    >
+                        等待输入...
+                    </div>
+                    <button 
+                        onclick="copyToClipboard()"
+                        class="absolute top-4 right-4 p-3 bg-slate-800 text-slate-400 hover:text-white rounded-xl transition-all opacity-0 group-hover:opacity-100 active:scale-95 shadow-lg"
+                        title="点击复制"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="copyToast" class="mt-3 text-sm text-emerald-600 font-bold hidden text-right animate-bounce">✓ 已成功复制到剪贴板！</div>
+            </div>
+
+            <!-- 说明卡片 -->
+            <div class="bg-blue-50 border border-blue-100 p-6 rounded-2xl text-sm text-blue-800 space-y-2">
+                <p class="font-bold">✨ 转换特性：</p>
+                <ul class="list-disc list-inside space-y-1 ml-2">
+                    <li><b>乘号自动补全：</b>识别连写的变量。如 <code class="bg-blue-100 px-1">P_mt_2</code> ➔ <code class="bg-blue-100 px-1 font-bold">P_m * t_2</code></li>
+                    <li><b>物理公式优化：</b>如 <code class="bg-blue-100 px-1">mgH</code> ➔ <code class="bg-blue-100 px-1 font-bold">m * g * H</code></li>
+                    <li><b>系数补全：</b>如 <code class="bg-blue-100 px-1">2x</code> ➔ <code class="bg-blue-100 px-1 font-bold">2 * x</code></li>
+                    <li><b>分式嵌套：</b>自动将 LaTeX 的花括号转换为 GeoGebra 所需的圆括号。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('latexInput');
+        const preview = document.getElementById('latexPreview');
+        const output = document.getElementById('ggbOutput');
+        const copyToast = document.getElementById('copyToast');
+
+        // 保护函数名不被乘号切割
+        const PROTECTED_FUNCS = ['sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan', 'ln', 'log', 'exp', 'sqrt', 'abs', 'sec', 'csc', 'cot'];
+
+        function convertLatexToGgb(latex) {
+            let res = latex;
+
+            // 1. 基础清理
+            res = res.replace(/\\left/g, '').replace(/\\right/g, '');
+            res = res.replace(/\\displaystyle/g, '');
+            res = res.replace(/\\,/g, ' ');
+
+            // 2. 处理分式 \frac{a}{b} -> ((a)/(b))
+            while (res.includes('\\frac')) {
+                const prev = res;
+                res = res.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '(($1)/($2))');
+                if (prev === res) break;
+            }
+
+            // 3. 处理根号
+            res = res.replace(/\\sqrt\s*\[([^\]]*)\]\s*\{([^{}]*)\}/g, '($2)^(1/($1))');
+            res = res.replace(/\\sqrt\s*\{([^{}]*)\}/g, 'sqrt($1)');
+
+            // 4. 清理反斜杠并标记保护函数
+            PROTECTED_FUNCS.forEach((f, index) => {
+                const reg = new RegExp('\\\\' + f + '(?![a-zA-Z])', 'g');
+                res = res.replace(reg, `__FUNC${index}__`);
+            });
+
+            // 5. 处理上标和下标的基本清理 (去除 {})
+            res = res.replace(/_\{([^}]*)\}/g, '_$1');
+            res = res.replace(/\^\{([^}]*)\}/g, '^($1)');
+
+            // 6. 核心逻辑：插入隐式乘号 *
+            res = res.replace(/([a-zA-Z]_[a-zA-Z0-9]+)([a-zA-Z])/g, '$1 * $2');
+            res = res.replace(/([a-zA-Z])([a-zA-Z]_[a-zA-Z0-9]+)/g, '$1 * $2');
+
+            for(let i=0; i<5; i++) {
+                res = res.replace(/([a-zA-Z0-9])([a-zA-Z])(?![a-zA-Z0-9_]*__FUNC)/g, (match, p1, p2) => {
+                    if (res.slice(res.indexOf(match)).startsWith('__FUNC')) return match;
+                    return p1 + ' * ' + p2;
+                });
+            }
+
+            // 7. 还原保护函数
+            PROTECTED_FUNCS.forEach((f, index) => {
+                res = res.replace(new RegExp(`__FUNC${index}__`, 'g'), f);
+            });
+
+            // 8. 最后的清理
+            res = res.replace(/\\cdot/g, '*');
+            res = res.replace(/\\times/g, '*');
+            res = res.replace(/\\/g, ''); 
+            res = res.replace(/\{/g, '(').replace(/\}/g, ')');
+            
+            res = res.replace(/\s+\*\s+/g, '*');
+            res = res.replace(/\*/g, ' * '); 
+
+            return res.trim();
+        }
+
+        function update() {
+            const val = input.value;
+            
+            // KaTeX 预览
+            try {
+                katex.render(val || '\\text{等待输入...}', preview, {
+                    throwOnError: false,
+                    displayMode: true
+                });
+            } catch (e) {
+                preview.innerHTML = '<span class="text-red-500">LaTeX 语法有误</span>';
+            }
+
+            // GeoGebra 转换
+            if (val.trim() === "") {
+                output.innerText = "等待输入...";
+                output.className = "w-full min-h-[100px] p-6 bg-slate-900 text-slate-600 rounded-2xl mono text-2xl break-all flex items-center";
+            } else {
+                const result = convertLatexToGgb(val);
+                output.innerText = result;
+                output.className = "w-full min-h-[100px] p-6 bg-slate-900 text-blue-300 rounded-2xl mono text-2xl break-all flex items-center leading-relaxed";
+            }
+        }
+
+        function insertText(text) {
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            input.value = input.value.substring(0, start) + text + input.value.substring(end);
+            input.focus();
+            update();
+        }
+
+        function clearInput() {
+            input.value = "";
+            update();
+        }
+
+        function copyToClipboard() {
+            const text = output.innerText;
+            if (text === "等待输入...") return;
+            
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+
+            copyToast.classList.remove('hidden');
+            setTimeout(() => copyToast.classList.add('hidden'), 2000);
+        }
+
+        input.addEventListener('input', update);
+        window.onload = update;
+    </script>
+</body>
+</html>
