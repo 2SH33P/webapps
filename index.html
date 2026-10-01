@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0a0b" />
+<meta name="description" content="五个自己写的小工具，一个静态站托管：五子棋、LaTeX→GeoGebra、图片扩边裁剪、本地图片压缩。" />
+<title>webapps · 小工具合集</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0b'/><circle cx='16' cy='16' r='6' fill='%23e5b567'/></svg>" />
+<style>
+  /* ---------- design tokens ---------- */
+  :root{
+    --bg:#0a0a0b;
+    --fg:#f4f1ea;
+    --muted:#9b968c;
+    --line:rgb(255 255 255 / .09);
+    --line-strong:rgb(255 255 255 / .18);
+    --accent:#e5b567;
+    --surface:rgb(255 255 255 / .035);
+    --surface-hover:rgb(255 255 255 / .06);
+    --radius:18px;
+    --radius-sm:calc(var(--radius) * .55);
+    --shadow:0 1px 2px rgb(0 0 0 / .4), 0 18px 40px -24px rgb(0 0 0 / .8);
+    --shadow-hover:0 1px 2px rgb(0 0 0 / .4), 0 28px 60px -28px rgb(0 0 0 / .9);
+    --pad-x:clamp(1.25rem, 5vw, 4.5rem);
+    --maxw:1180px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+    /* fluid type scale */
+    --t-hero:clamp(2.6rem, 11vw, 7.5rem);
+    --t-h2:clamp(1.5rem, 3.4vw, 2.25rem);
+    --t-card:clamp(1.12rem, 1.7vw, 1.35rem);
+    --t-body:clamp(.95rem, 1.05vw, 1.05rem);
+    --t-sm:clamp(.78rem, .9vw, .875rem);
+    --t-mono:clamp(.72rem, .82vw, .8rem);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{overscroll-behavior:none}
+  *{scrollbar-width:thin;scrollbar-color:rgb(255 255 255 / .22) transparent}
+  body{
+    margin:0;background:var(--bg);color:var(--fg);
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,sans-serif;
+    font-size:var(--t-body);line-height:1.6;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    letter-spacing:-0.005em;
+  }
+  a{color:inherit;text-decoration:none}
+  /* ---------- ambient background ---------- */
+  .bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+  .bg::before{
+    content:"";position:absolute;left:50%;top:-38vh;width:min(1400px,150vw);aspect-ratio:1;
+    transform:translateX(-50%);
+    background:radial-gradient(circle at 50% 50%, rgb(229 181 103 / .16), transparent 62%);
+    filter:blur(10px);
+  }
+  .bg::after{ /* grain */
+    content:"";position:absolute;inset:0;opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative;z-index:1}
+  /* ---------- layout ---------- */
+  .shell{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad-x)}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.6rem 0}
+  .brand{display:flex;align-items:center;gap:.6rem;font-weight:600;letter-spacing:-.02em}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px 2px rgb(229 181 103 / .5)}
+  nav a{color:var(--muted);font-size:var(--t-sm);transition:color .3s var(--ease)}
+  nav a:hover{color:var(--fg)}
+  /* ---------- hero ---------- */
+  .hero{padding:clamp(3rem,10vh,7rem) 0 clamp(3rem,9vh,6rem)}
+  .eyebrow{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--t-mono);letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin:0 0 1.2rem}
+  h1{font-size:var(--t-hero);line-height:.92;letter-spacing:-.045em;font-weight:600;margin:0}
+  h1 .ltr{display:inline-block}
+  .lede{margin:1.8rem 0 0;max-width:46ch;color:var(--muted);font-size:clamp(1rem,1.5vw,1.2rem);line-height:1.65}
+  .lede strong{color:var(--fg);font-weight:500}
+  /* ---------- grid ---------- */
+  section.tools{padding-bottom:clamp(4rem,10vh,7rem)}
+  .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));margin-top:2.5rem}
+  .card{
+    position:relative;display:flex;flex-direction:column;gap:1.1rem;
+    padding:clamp(1.35rem,2.4vw,1.9rem);border:1px solid var(--line);border-radius:var(--radius);
+    background:
+      radial-gradient(420px circle at var(--mx,50%) var(--my,0%), rgb(229 181 103 / .1), transparent 62%),
+      var(--surface);
+    box-shadow:var(--shadow);
+    transition:transform .5s var(--ease), box-shadow .5s var(--ease), border-color .5s var(--ease), background-color .5s var(--ease);
+  }
+  .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-hover);border-color:var(--line-strong);background-color:var(--surface-hover)}
+  .card:active{transform:translateY(-1px) scale(.995)}
+  .card:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .card .idx{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--t-mono);color:var(--muted);letter-spacing:.12em}
+  .card h3{margin:0;font-size:var(--t-card);font-weight:550;letter-spacing:-.02em}
+  .card p{margin:0;color:var(--muted);font-size:var(--t-sm);line-height:1.62}
+  .tags{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:auto;padding-top:.4rem}
+  .tag{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:var(--t-mono);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:.22rem .6rem}
+  .card .go{display:flex;align-items:center;gap:.5rem;color:var(--accent);font-size:var(--t-sm);font-weight:500}
+  .go .arrow{transition:transform .45s var(--ease)}
+  .card:hover .go .arrow{transform:translateX(4px)}
+  .card .src{color:var(--muted);font-size:var(--t-mono);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;transition:color .3s var(--ease)}
+  .card .src:hover{color:var(--fg)}
+  .card .foot{display:flex;align-items:center;justify-content:space-between;gap:1rem;border-top:1px solid var(--line);padding-top:.95rem}
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid var(--line);padding:2.2rem 0 3.2rem;color:var(--muted);font-size:var(--t-sm)}
+  footer .shell{display:flex;flex-wrap:wrap;gap:.9rem;justify-content:space-between;align-items:center}
+  footer a:hover{color:var(--fg)}
+  /* ---------- motion ---------- */
+  [data-reveal]{opacity:0;transform:translateY(18px);filter:blur(4px);
+    transition:opacity .6s ease-out, transform .6s ease-out, filter .6s ease-out}
+  [data-reveal].in{opacity:1;transform:none;filter:none}
+  .fade-up{opacity:0;transform:translateY(14px);animation:fadeUp .9s var(--ease) forwards}
+  @keyframes fadeUp{to{opacity:1;transform:none}}
+  .ltr{opacity:0;transform:translateY(.5em) rotate(2deg);animation:letterIn .8s var(--ease) forwards}
+  @keyframes letterIn{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    [data-reveal],.fade-up,.ltr{opacity:1;transform:none;filter:none;animation:none;transition:none}
+    .card,.card:hover{transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+<div class="wrap">
+  <div class="shell">
+    <header class="top">
+      <div class="brand fade-up"><span class="dot" aria-hidden="true"></span>webapps</div>
+      <nav class="fade-up" style="animation-delay:.15s">
+        <a href="https://github.com/2SH33P/webapps">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="hero">
+        <p class="eyebrow fade-up" style="animation-delay:.05s">Static · GitHub Pages</p>
+        <h1 aria-label="webapps"><span class="ltr" style="animation-delay:.12s">w</span><span class="ltr" style="animation-delay:.16s">e</span><span class="ltr" style="animation-delay:.2s">b</span><span class="ltr" style="animation-delay:.24s">a</span><span class="ltr" style="animation-delay:.28s">p</span><span class="ltr" style="animation-delay:.32s">p</span><span class="ltr" style="animation-delay:.36s">s</span></h1>
+        <p class="lede fade-up" style="animation-delay:.42s">五个自己写的小工具，全部跑在浏览器里，<strong>没有后端、没有构建步骤</strong>。有些是单文件 HTML，有些是可以离线安装的 PWA。</p>
+      </div>
+
+      <section class="tools" aria-label="工具列表">
+        <div class="grid">
+          <a class="card" data-reveal href="wuzi/" style="transition-delay:0s">
+            <span class="idx">01 / GAME</span>
+            <h3>五子棋 · Gomoku</h3>
+            <p>移动端优先的本地双人五子棋，支持无限悔棋、可离线安装的 PWA。棋盘与胜负逻辑纯手写，无第三方库。</p>
+            <div class="tags"><span class="tag">PWA</span><span class="tag">原生 JS</span><span class="tag">离线可用</span></div>
+            <div class="foot">
+              <span class="go">打开 <span class="arrow">→</span></span>
+              <span class="src" data-src="wuzi/">源码</span>
+            </div>
+          </a>
+
+          <a class="card" data-reveal href="latex2geogebra/" style="transition-delay:.06s">
+            <span class="idx">02 / MATH</span>
+            <h3>LaTeX → GeoGebra</h3>
+            <p>把 LaTeX 数学公式转成 GeoGebra 的代数输入格式，内置 KaTeX 实时预览，自动补全乘号等常见差异。</p>
+            <div class="tags"><span class="tag">单文件 HTML</span><span class="tag">KaTeX</span><span class="tag">教学用</span></div>
+            <div class="foot">
+              <span class="go">打开 <span class="arrow">→</span></span>
+              <span class="src" data-src="latex2geogebra/">源码</span>
+            </div>
+          </a>
+
+          <a class="card" data-reveal href="image-canvas-expander/" style="transition-delay:.12s">
+            <span class="idx">03 / IMAGE</span>
+            <h3>image_canvas_expander</h3>
+            <p>“减数分裂”式扩边裁切：向黑底四周填充白色、让 AI 只改框内内容，再裁掉带水印的白边。</p>
+            <div class="tags"><span class="tag">单文件 HTML</span><span class="tag">Canvas</span><span class="tag">AI 生图</span></div>
+            <div class="foot">
+              <span class="go">打开 <span class="arrow">→</span></span>
+              <span class="src" data-src="image-canvas-expander/">源码</span>
+            </div>
+          </a>
+
+          <a class="card" data-reveal href="local-photo-converter/" style="transition-delay:.18s">
+            <span class="idx">04 / IMAGE</span>
+            <h3>Local Photo Converter</h3>
+            <p>浏览器内完成极限图片压缩与格式转换，图片不上传服务端；仓库另带一个 Node 本地预览小服务。</p>
+            <div class="tags"><span class="tag">前端压缩</span><span class="tag">零上传</span><span class="tag">Apache-2.0</span></div>
+            <div class="foot">
+              <span class="go">打开 <span class="arrow">→</span></span>
+              <span class="src" data-src="local-photo-converter/">源码</span>
+            </div>
+          </a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <div class="shell">
+      <span>静置于 GitHub Pages · 无 Cookie · 无追踪</span>
+      <span><a href="https://github.com/2SH33P/webapps">2SH33P/webapps ›</a></span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  // 源码链接指向子目录，避免嵌套 <a>（卡片本身已是链接）
+  document.querySelectorAll('.src[data-src]').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open('https://github.com/2SH33P/webapps/tree/main/' + el.dataset.src, '_blank', 'noopener');
+    });
+  });
+
+  // 滚动揭示 + 卡片指针光晕
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var targets = document.querySelectorAll('[data-reveal]');
+  if (reduce || !('IntersectionObserver' in window)) {
+    targets.forEach(function (el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { threshold: .15, rootMargin: '0px 0px -8% 0px' });
+    targets.forEach(function (el) { io.observe(el); });
+  }
+
+  document.querySelectorAll('.card').forEach(function (card) {
+    card.addEventListener('pointermove', function (e) {
+      var r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+      card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+    });
+  });
+</script>
+</body>
+</html>
